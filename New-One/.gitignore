@@ -1,0 +1,8 @@
+.venv/
+env310/
+__pycache__/
+*.pyc
+data/observations.db
+captures/*
+!captures/.gitkeep
+*.pt
