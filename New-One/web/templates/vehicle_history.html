@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Vehicle History | NeoEHS AI Vision{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Vehicle Event History</h1>
+    <p>All front gate entries and back gate exits</p>
+  </div>
+  <a href="/vehicles" class="link">← Back to vehicle dashboard</a>
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>All Gate Events</h2>
+    <span class="badge">{{ events|length }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Plate</th>
+          <th>Direction</th>
+          <th>Type</th>
+          <th>Brand</th>
+          <th>Gate</th>
+          <th>Camera</th>
+          <th>Duration Inside</th>
+          <th>Confidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+        <tr class="clickable" onclick="window.location='/vehicles/{{ event.plate_number }}'">
+          <td>{{ event.event_time[:19].replace('T', ' ') }}</td>
+          <td><code>{{ event.plate_number }}</code></td>
+          <td><span class="pill {% if event.direction == 'in' %}low{% else %}medium{% endif %}">{{ event.direction|upper }}</span></td>
+          <td>{{ event.vehicle_type }}</td>
+          <td>{{ event.vehicle_brand }}</td>
+          <td>{{ event.gate_name }}</td>
+          <td>{{ event.camera_name }}</td>
+          <td>{% if event.duration_seconds is not none %}{{ event.duration_seconds|duration }}{% else %}—{% endif %}</td>
+          <td>{{ '%.0f'|format(event.confidence * 100) }}%</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="empty">No vehicle events recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

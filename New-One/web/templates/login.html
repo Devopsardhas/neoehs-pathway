@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Sign In | NeoEHS AI Vision{% endblock %}
+{% block body %}
+<div class="login-page">
+  <div class="login-shell">
+    <div class="login-brand-panel">
+      <img src="/static/images/neo_ehs_logo.png" alt="NeoEHS" class="login-logo">
+      <p class="login-tagline">Environment · Health · Safety — powered by AI</p>
+      <p class="login-desc">NeoEHS vision monitoring for pathway safety, obstruction detection, and mobile usage compliance across your CCTV network.</p>
+    </div>
+    <form class="login-card" method="post" action="/login">
+      <h2>Welcome back</h2>
+      <p class="login-sub">Sign in to access the vision monitoring portal</p>
+      {% if error %}
+      <div class="alert error">{{ error }}</div>
+      {% endif %}
+      <label>
+        Username
+        <input type="text" name="username" required autofocus placeholder="Enter username">
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" required placeholder="Enter password">
+      </label>
+      <button type="submit" class="btn primary full">Sign In</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

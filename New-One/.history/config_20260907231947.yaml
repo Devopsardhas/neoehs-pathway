@@ -1,0 +1,525 @@
+rtsp:
+  url: "rtsp://username:password@192.168.1.100:554/stream1"
+  reconnect_delay_sec: 5
+  frame_skip: 3  # process every Nth frame for performance
+  max_read_failures: 15  # skip corrupt h264 frames before reconnecting
+
+camera:
+  id: "camera_6"
+  name: "Warehouse Camera 6"
+
+# Optional multi-camera list for dashboard live preview selection.
+# If omitted, the rtsp.url and camera.id above are used as a single camera.
+cameras:
+  - id: "camera_1"
+    name: "CCTV Camera 1"
+    rtsp_url: "rtsp://username:password@192.168.1.100:554/stream1"
+    role: "monitor"
+  - id: "camera_2"
+    name: "CCTV Camera 2"
+    rtsp_url: "rtsp://username:password@192.168.1.103:554/stream1"
+    role: "monitor"
+  - id: "camera_3"
+    name: "CCTV Camera 3"
+    rtsp_url: "rtsp://username:password@192.168.1.104:554/stream1"
+    role: "monitor"
+  - id: "camera_4"
+    name: "CCTV Camera 4"
+    rtsp_url: "rtsp://username:password@192.168.1.105:554/stream1"
+    role: "monitor"
+  - id: "camera_6"
+    name: "Warehouse Camera 6"
+    rtsp_url: "rtsp://username:password@192.168.1.100:554/stream1"
+    role: "monitor"
+  - id: "gate_front"
+    name: "Front Gate Camera"
+    rtsp_url: "rtsp://username:password@192.168.1.101:554/stream1"
+    role: "gate_in"
+    gate_id: "main_gate"
+    gate_name: "Front Gate"
+  - id: "gate_back"
+    name: "Back Gate Camera"
+    rtsp_url: "rtsp://username:password@192.168.1.102:554/stream1"
+    role: "gate_out"
+    gate_id: "main_gate"
+    gate_name: "Back Gate"
+
+detection:
+  # mode: "coco" = standard 80 COCO classes | "world" = custom open-vocabulary classes
+  mode: "world"
+  model: "yolov8s-worldv2.pt"
+  confidence: 0.25
+  iou: 0.5
+  imgsz: 1280
+  # Excluded from pathway blocking — people, worn PPE, phones, fire/smoke.
+  # Only stationary objects in the pathway zone are flagged as blockages.
+  blocking_exclude_classes:
+    - person
+    - helmet
+    - hard hat
+    - safety helmet
+    - safety vest
+    - high visibility vest
+    - reflective vest
+    - gloves
+    - safety gloves
+    - work gloves
+    - boots
+    - safety boots
+    - safety shoes
+    - cell phone
+    - mobile phone
+    - smartphone
+    - phone
+  custom_classes:
+    - person
+    - cell phone
+    - mobile phone
+    - smartphone
+    - phone
+    - cardboard box
+    - box
+    - carton
+    - package
+    - bag
+    - backpack
+    - handbag
+    - suitcase
+    - chair
+    - stool
+    - cart
+    - trolley
+    - pallet
+    - wooden pallet
+    - metal pallet
+    - yellow pallet
+    - yellow frame
+    - metal frame
+    - industrial module
+    - switchgear module
+    - valve assembly
+    - electrical module
+    - assembly module
+    - obstruction
+    - object on floor
+    - hand pallet truck
+    - hydraulic pallet jack
+    - pallet truck
+    - scissor lift
+    - scissor lift table
+    - lift table
+    - machine
+    - machinery
+    - industrial machine
+    - industrial equipment
+    - electrical equipment
+    - electrical module
+    - transformer
+    - insulator
+    - assembly equipment
+    - equipment
+    - crate
+    - bucket
+    - ladder
+    - toolbox
+    - printer
+    - monitor
+    - laptop
+    - fan
+    - trash bin
+    - bin
+    - helmet
+    - hard hat
+    - safety helmet
+    - safety vest
+    - high visibility vest
+    - reflective vest
+    - gloves
+    - safety gloves
+    - work gloves
+    - boots
+    - safety boots
+    - safety shoes
+    - fire
+    - flame
+    - welding
+    - welding spark
+    - welding arc
+    - electrical spark
+    - spark
+    - electrical arc
+    - smoke
+    - smoke plume
+    - bottle
+    - fire extinguisher
+    - forklift
+    - truck
+    - vehicle
+    - car
+    - bus
+    - van
+    - motorcycle
+    - auto
+    - license plate
+    - number plate
+    - registration plate
+    - licence plate
+    - lorry
+    - suv
+    - pickup truck
+    - scooter
+    - toyota
+    - honda
+    - hyundai
+    - maruti
+    - suzuki
+    - tata
+    - mahindra
+    - ford
+    - bmw
+    - mercedes
+    - audi
+    - kia
+    - nissan
+    - volkswagen
+    - skoda
+    - renault
+    - chevrolet
+    - jeep
+    - isuzu
+    - ashok leyland
+    - falling object
+    - oil spill
+    - oil spillage
+    - oil puddle
+    - oil leak
+    - spilled oil
+    - wet floor
+    - water spill
+    - puddle
+    - wet surface
+    - slippery floor
+
+mobile_usage:
+  enabled: true
+  # Magenta zone = mobile ALLOWED. Phone use anywhere else in the camera view = violation.
+  person_class: "person"
+  phone_classes:
+    - cell phone
+    - mobile phone
+    - smartphone
+    - phone
+  phone_confidence: 0.15          # lower threshold — phones are small on CCTV
+  person_phone_distance_px: 180   # phone near person's body
+  person_phone_padding_px: 50
+  upper_body_ratio: 0.65          # check upper 65% of person bbox for phone
+  person_min_overlap: 0.03        # relaxed person-in-zone check
+  allow_phone_in_zone_match: true # person + phone both in zone counts as usage
+  min_usage_frames: 5             # consecutive frames before violation
+  phone_miss_frames: 4              # tolerate brief phone detection gaps while roaming
+  pathway_miss_frames: 4            # tolerate brief zone boundary crossings while roaming
+  resolve_grace_sec: 8.0            # seconds without phone detection before closing observation
+
+pathway_block:
+  enabled: true
+  min_duration_sec: 5
+  confidence: 0.12
+  cv_fallback_enabled: true
+  cv_diff_threshold: 22
+  cv_min_area_px: 2500
+  cv_min_width_px: 35
+  cv_min_height_px: 35
+  cv_blur_kernel: 5
+  cv_morph_kernel: 5
+  cv_history_frames: 20
+  cv_min_static_frames: 4
+  cv_max_displacement_px: 18
+  cv_match_distance_px: 90
+  cv_person_padding_px: 35
+
+ppe_violation:
+  enabled: true
+  person_class: "person"
+  confidence: 0.20
+  match_distance_px: 120
+  match_padding_px: 40
+  person_min_overlap: 0.03
+  min_violation_frames: 5
+  resolve_grace_sec: 3.0
+  items:
+    helmet:
+      enabled: true
+      classes:
+        - helmet
+        - hard hat
+        - safety helmet
+        - construction helmet
+      region_top: 0.0
+      region_bottom: 0.35
+    vest:
+      enabled: true
+      classes:
+        - safety vest
+        - high visibility vest
+        - reflective vest
+        - hi-vis vest
+      region_top: 0.35
+      region_bottom: 0.80
+    gloves:
+      enabled: false
+      classes:
+        - gloves
+        - safety gloves
+        - work gloves
+        - protective gloves
+      region_top: 0.40
+      region_bottom: 0.72
+    boots:
+      enabled: false
+      classes:
+        - boots
+        - safety boots
+        - steel toe boots
+        - safety shoes
+        - work boots
+      region_top: 0.72
+      region_bottom: 1.0
+
+fire_smoke:
+  enabled: true
+  fire_enabled: true
+  smoke_enabled: true
+  fire_types:
+    structural_fire:
+      label: Structural Fire
+      classes: [fire, flame]
+      alert: true
+      immediate_high: true
+    welding:
+      label: Welding
+      classes: [welding, welding spark, welding arc, welding sparks]
+      alert: true
+      immediate_high: false
+    electrical_spark:
+      label: Electrical Spark
+      classes: [electrical spark, electrical sparks, spark, electrical arc, sparks]
+      alert: true
+      immediate_high: false
+  fire_classes:
+    - fire
+    - flame
+    - welding
+    - welding spark
+    - welding arc
+    - electrical spark
+    - spark
+    - electrical arc
+  smoke_classes:
+    - smoke
+    - smoke plume
+  confidence: 0.20
+  fire_min_confidence: 0.30
+  fire_trusted_confidence: 0.40
+  fire_trusted_min_frames: 3
+  fire_min_detection_frames: 3
+  streak_miss_frames: 4
+  smoke_min_detection_frames: 3
+  smoke_trusted_confidence: 0.40
+  smoke_trusted_min_frames: 3
+  smoke_merge_distance_px: 150
+  smoke_person_max_overlap: 0.20   # solid blobs on clothing only; wispy plumes bypass this
+  smoke_temporal_min_texture_std: 0.010
+  smoke_temporal_min_drift_px: 6     # rising plume center drift across frames
+  smoke_temporal_static_max_drift_px: 8
+  smoke_temporal_min_jitter_px: 1.5
+  resolve_grace_sec: 5.0
+  spatial_bucket_px: 80
+  fire_merge_distance_px: 200
+  fire_temporal_min_frames: 3
+  fire_temporal_min_area_px: 250    # small desk/ceremonial flames on CCTV
+  fire_temporal_min_area_ratio: 0.00015
+  fire_temporal_min_density_std: 0.010
+  fire_temporal_static_max_drift_px: 5
+  fire_temporal_bulk_motion_min_drift_px: 60
+  fire_temporal_min_jitter_px: 1.2
+  fire_temporal_flame_density_min: 0.08
+  fire_temporal_flame_brightness_min: 15
+  fire_temporal_flame_value_std_min: 38   # real flames ~39+; red fabric/bags ~21-36
+  fire_temporal_flat_density_min: 0.42  # reject solid red/yellow blocks (warehouse labels)
+  fire_immediate_high: true       # fire alerts always high severity
+  smoke_immediate_high: true
+  cv_fallback_enabled: true
+  cv_fire_fallback_enabled: true  # YOLO misses small CCTV flames; flat-sign filter blocks red labels
+  cv_smoke_fallback_enabled: true   # required — YOLO misses CCTV smoke plumes
+  cv_fire_min_area: 350
+  cv_smoke_min_area: 2500
+  cv_fire_confidence: 0.35
+  cv_smoke_confidence: 0.35   # must be >=0.35 or ByteTrack drops all CV smoke boxes
+  cv_smoke_max_saturation: 45
+  cv_smoke_min_brightness: 70
+  cv_smoke_max_brightness: 210
+  cv_smoke_max_area_ratio: 0.10     # reject large walls/floors flagged as smoke
+  cv_smoke_min_texture_std: 35      # reject flat white/shadow regions
+  cv_smoke_max_edge_ratio: 0.20     # reject sharp-edged furniture/desks
+  cv_smoke_max_mask_fill: 0.50      # reject solid monitor/panel surfaces
+  cv_smoke_max_solidity: 0.65       # reject compact rectangular blobs
+  cv_smoke_max_rectangularity: 0.50 # reject desk/monitor-shaped regions
+  cv_smoke_max_aspect_ratio: 4.0    # reject thin ceiling/floor strips
+
+floor_hazard:
+  enabled: true
+  oil_spillage_enabled: true
+  wet_floor_enabled: true
+  oil_classes:
+    - oil spill
+    - oil spillage
+    - oil puddle
+    - oil leak
+    - spilled oil
+  wet_floor_classes:
+    - wet floor
+    - water spill
+    - puddle
+    - wet surface
+    - slippery floor
+  confidence: 0.20
+  oil_min_detection_frames: 4
+  wet_floor_min_detection_frames: 4
+  resolve_grace_sec: 5.0
+  spatial_bucket_px: 80
+  oil_immediate_high: false
+  wet_floor_immediate_high: false
+
+object_fall:
+  enabled: true
+  detect_person_fall: true
+  detect_object_fall: true
+  history_frames: 10
+  min_fall_distance_px: 35        # total downward movement across history window
+  min_fall_velocity_px: 5         # average downward px per processed frame
+  recent_frames: 4                # look at last N frames for lift-then-drop cases
+  recent_min_fall_distance_px: 24 # downward movement in recent window
+  sudden_drop_px: 18              # one-frame drop (boxes slipping off forklift)
+  min_fall_frames: 2
+  resolve_grace_sec: 5.0
+  person_min_overlap: 0.03
+  immediate_high: true
+
+near_miss:
+  enabled: true
+  person_class: "person"
+  hazard_classes:
+    - forklift
+    - truck
+    - vehicle
+    - cart
+    - trolley
+    - machine
+    - equipment
+  max_distance_px: 120            # person-to-hazard center distance
+  min_frames: 4
+  resolve_grace_sec: 5.0
+  person_min_overlap: 0.03
+  immediate_high: true
+
+low_visibility:
+  enabled: true
+  min_detection_frames: 8         # consecutive low-visibility frames before alert
+  resolve_grace_sec: 8.0
+  score_threshold: 0.42           # visibility score 0-1; below this triggers alert
+  laplacian_reference: 120.0      # expected sharpness reference for clear scenes
+  contrast_reference: 45.0        # expected gray-level contrast
+  edge_reference: 0.045           # expected edge density ratio
+  brightness_min: 25.0            # under-exposure threshold
+  brightness_max: 220.0           # glare / washout threshold
+  sample_stride_px: 4             # downsample stride for faster analysis
+  immediate_high: false
+
+tracking:
+  track_activation_threshold: 0.25
+  lost_track_buffer: 30
+  minimum_matching_threshold: 0.8
+  frame_rate: 15
+
+static_filter:
+  history_frames: 30
+  max_displacement_px: 15   # base threshold; scales up for large machinery bboxes
+  min_static_frames: 10     # consecutive static frames before pathway blockage is raised
+
+pathway:
+  config_file: "data/pathways.json"
+  min_overlap_ratio: 0.12   # 12% of bbox must be inside (both ratio AND area required)
+  min_overlap_area_px: 500   # AND at least this many pixels inside
+  use_foot_point: true      # bottom-center of bbox on pathway also counts
+
+observations:
+  db_path: "data/observations.db"
+  capture_dir: "captures"
+  spatial_match_radius_px: 120
+  min_duration_for_update_sec: 1
+
+summary:
+  brief_threshold_sec: 60
+  moderate_threshold_sec: 300
+
+gate_vehicle:
+  enabled: true
+  vehicle_classes:
+    - car
+    - truck
+    - lorry
+    - bus
+    - van
+    - motorcycle
+    - bike
+    - scooter
+    - suv
+    - pickup
+    - auto
+    - vehicle
+  plate_classes:
+    - license plate
+    - number plate
+    - registration plate
+    - licence plate
+  brand_classes:
+    - toyota
+    - honda
+    - hyundai
+    - maruti
+    - suzuki
+    - tata
+    - mahindra
+    - ford
+    - bmw
+    - mercedes
+    - audi
+    - kia
+    - nissan
+    - volkswagen
+    - skoda
+    - renault
+    - chevrolet
+    - jeep
+    - isuzu
+    - ashok leyland
+  vehicle_confidence: 0.30
+  plate_confidence: 0.25
+  brand_confidence: 0.22
+  min_confirm_frames: 4
+  duplicate_cooldown_sec: 45
+  plate_match_distance_px: 220
+  db_path: "data/vehicles.db"
+  capture_dir: "captures/vehicles"
+  ocr_enabled: true
+
+web:
+  host: "0.0.0.0"
+  port: 8080
+  secret_key: "change-this-secret-key-in-production"
+  live_preview_enabled: true
+  # Set true only when the web dashboard is the sole monitor process.
+  live_preview_persist: false
+  users:
+    admin: "admin123"
+    operator: "operator123"
