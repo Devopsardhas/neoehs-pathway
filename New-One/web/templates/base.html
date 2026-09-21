@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}NeoEHS AI Vision{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  {% if user is defined and user %}
+  <div class="layout">
+    <aside class="sidebar">
+      <a href="/dashboard" class="brand">
+        <img src="/static/images/neo_ehs_logo.png" alt="NeoEHS" class="brand-logo">
+      </a>
+      <p class="brand-tagline"><span>Environment · Health · Safety</span> powered by AI</p>
+      <nav>
+        <a href="/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+          <span class="nav-icon">▣</span> Dashboard
+        </a>
+        <div class="nav-section">Violation Types</div>
+        <a href="/violations/pathway_block" class="nav-item {% if active_page == 'pathway_block' %}active{% endif %}">
+          <span class="nav-icon">⛔</span> Pathway Block
+        </a>
+        <a href="/violations/mobile_usage" class="nav-item {% if active_page == 'mobile_usage' %}active{% endif %}">
+          <span class="nav-icon">📱</span> Mobile Usage
+        </a>
+        <a href="/violations/ppe_violation" class="nav-item {% if active_page == 'ppe_violation' %}active{% endif %}">
+          <span class="nav-icon">⛑</span> PPE Violation
+        </a>
+        <a href="/violations/fire_detection" class="nav-item {% if active_page == 'fire_detection' %}active{% endif %}">
+          <span class="nav-icon">🔥</span> Fire Detection
+        </a>
+        <a href="/violations/smoke_detection" class="nav-item {% if active_page == 'smoke_detection' %}active{% endif %}">
+          <span class="nav-icon">💨</span> Smoke Detection
+        </a>
+        <a href="/violations/object_fall" class="nav-item {% if active_page == 'object_fall' %}active{% endif %}">
+          <span class="nav-icon">⬇</span> Object Fall
+        </a>
+        <a href="/violations/near_miss" class="nav-item {% if active_page == 'near_miss' %}active{% endif %}">
+          <span class="nav-icon">⚠</span> Near Miss
+        </a>
+        <a href="/violations/oil_spillage" class="nav-item {% if active_page == 'oil_spillage' %}active{% endif %}">
+          <span class="nav-icon">🛢</span> Oil Spillage
+        </a>
+        <a href="/violations/wet_floor" class="nav-item {% if active_page == 'wet_floor' %}active{% endif %}">
+          <span class="nav-icon">💧</span> Wet Floor
+        </a>
+        <a href="/violations/low_visibility" class="nav-item {% if active_page == 'low_visibility' %}active{% endif %}">
+          <span class="nav-icon">🌫</span> Low Visibility
+        </a>
+        <div class="nav-section">Vehicle Management</div>
+        <a href="/vehicles" class="nav-item {% if active_page == 'vehicles' %}active{% endif %}">
+          <span class="nav-icon">🚗</span> Vehicles
+        </a>
+        <div class="nav-section">Demo Mode</div>
+        <a href="/demo" class="nav-item {% if active_page == 'safety_demo' %}active{% endif %}">
+          <span class="nav-icon">🎬</span> Safety Demo
+        </a>
+        <a href="/vehicles/demo" class="nav-item {% if active_page == 'vehicles_demo' %}active{% endif %}">
+          <span class="nav-icon">🚗</span> Gate Demo
+        </a>
+        <a href="/camera-demo" class="nav-item {% if active_page == 'camera_zone_demo' %}active{% endif %}">
+          <span class="nav-icon">📷</span> Camera Zone Demo
+        </a>
+        <div class="nav-section">All Records</div>
+        <a href="/observations" class="nav-item {% if active_page == 'observations' %}active{% endif %}">
+          <span class="nav-icon">☰</span> Observations
+        </a>
+        <div class="nav-section">Configuration</div>
+        <a href="/settings" class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+          <span class="nav-icon">⚙</span> Settings
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-badge">{{ user }}</div>
+        <a href="/logout" class="logout-link">Sign out</a>
+      </div>
+    </aside>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% else %}
+    {% block body %}{% endblock %}
+  {% endif %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

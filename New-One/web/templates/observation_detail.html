@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Observation {{ obs.observation_id[:8] }} | NeoEHS AI Vision{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <nav class="breadcrumb">
+      <a href="/dashboard">Dashboard</a>
+      <span>/</span>
+      <a href="/violations/{{ obs.violation_type }}">{{ violation_label }}</a>
+      <span>/</span>
+      <span>{{ obs.observation_id[:8] }}…</span>
+    </nav>
+    <h1>Observation Detail</h1>
+    <p>{{ obs.summary }}</p>
+  </div>
+  <div class="header-badges">
+    <span class="pill {{ obs.severity }}">{{ obs.severity }}</span>
+    <span class="pill status-{{ obs.status }}">{{ obs.status }}</span>
+  </div>
+</div>
+
+<div class="detail-grid{% if obs.violation_type == 'pathway_block' %} detail-grid-compare{% endif %}">
+  <section class="panel">
+    <div class="panel-header"><h2>Violation Data</h2></div>
+    <dl class="detail-list">
+      <div><dt>Observation ID</dt><dd><code>{{ obs.observation_id }}</code></dd></div>
+      <div><dt>Violation Type</dt><dd>{{ violation_label }}</dd></div>
+      <div><dt>Camera ID</dt><dd>{{ obs.camera_id }}</dd></div>
+      <div><dt>Zone ID</dt><dd>{{ obs.zone_id }}</dd></div>
+      <div><dt>Zone Name</dt><dd>{{ obs.zone_name }}</dd></div>
+      <div><dt>Track ID</dt><dd>{% if obs.track_id is not none %}#{{ obs.track_id }}{% else %}—{% endif %}</dd></div>
+      <div><dt>Missing PPE</dt><dd>{{ obs.object_class|object_class }}</dd></div>
+      <div><dt>Confidence</dt><dd>{{ '%.1f'|format(obs.confidence_score * 100) }}%</dd></div>
+      <div><dt>First Seen</dt><dd>{{ obs.first_seen[:19].replace('T', ' ') }} UTC</dd></div>
+      <div><dt>Last Seen</dt><dd>{{ obs.last_seen[:19].replace('T', ' ') }} UTC</dd></div>
+      <div><dt>Duration</dt><dd>{{ obs.duration_seconds|duration }}</dd></div>
+      <div><dt>Severity</dt><dd><span class="pill {{ obs.severity }}">{{ obs.severity }}</span></dd></div>
+      <div class="full"><dt>Summary</dt><dd class="summary-text">{{ obs.summary }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Captured Evidence</h2></div>
+    {% if image_url %}
+    <img
+      src="{{ image_url }}"
+      alt="Violation capture"
+      class="capture-image{% if obs.violation_type == 'pathway_block' %} capture-image-compare{% endif %}"
+    >
+    {% if obs.violation_type == 'pathway_block' %}
+    <p class="capture-caption">Evidence includes the defined reference pathway. When a reference camera image is available, it is shown on the left next to the live blocked frame.</p>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">No capture image available.</div>
+    {% endif %}
+  </section>
+</div>
+
+<div class="actions-bar">
+  <a href="/violations/{{ obs.violation_type }}" class="btn secondary">← Back to {{ violation_label }}</a>
+  <a href="/dashboard" class="btn secondary">Dashboard</a>
+</div>
+{% endblock %}

@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | NeoEHS AI Vision{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Vision Monitoring Dashboard</h1>
+    <p>Real-time AI observations · Click any card to drill down</p>
+  </div>
+  <div class="page-actions">
+    <a href="/demo" class="btn secondary">Safety Demo Videos</a>
+  </div>
+</div>
+
+{% if live_preview_enabled %}
+<section class="panel live-preview-panel">
+  <div class="panel-header live-preview-header">
+    <div>
+      <h2>Live Camera Preview</h2>
+      <p class="live-preview-subtitle">Raw camera feed starts immediately; detection overlays appear after the model loads</p>
+    </div>
+    <label class="camera-select-wrap">
+      <span>Camera</span>
+      <select id="camera-select" class="camera-select" aria-label="Select camera">
+        {% for camera in cameras %}
+        <option value="{{ camera.id }}" {% if camera.id == default_camera_id %}selected{% endif %}>
+          {{ camera.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+  <div class="live-preview-viewport">
+    <img
+      id="live-preview-stream"
+      class="live-preview-stream"
+      src="/api/live/stream?camera_id={{ default_camera_id }}"
+      alt="Live camera preview with detection overlays"
+    >
+  </div>
+</section>
+{% endif %}
+
+<div class="stats-grid stats-grid-extended">
+  <a href="/observations" class="stat-card clickable">
+    <div class="stat-icon total">☰</div>
+    <div class="stat-body">
+      <span class="stat-label">Total Observations</span>
+      <strong class="stat-value">{{ stats.total }}</strong>
+      <span class="stat-hint">View all records →</span>
+    </div>
+  </a>
+  <a href="/observations?status=active" class="stat-card clickable accent-green">
+    <div class="stat-icon active">●</div>
+    <div class="stat-body">
+      <span class="stat-label">Active Violations</span>
+      <strong class="stat-value">{{ stats.active }}</strong>
+      <span class="stat-hint">Drill down active →</span>
+    </div>
+  </a>
+  <a href="/observations?status=resolved" class="stat-card clickable accent-muted">
+    <div class="stat-icon resolved">✓</div>
+    <div class="stat-body">
+      <span class="stat-label">Resolved</span>
+      <strong class="stat-value">{{ stats.resolved }}</strong>
+      <span class="stat-hint">View resolved →</span>
+    </div>
+  </a>
+  <a href="/violations/pathway_block" class="stat-card clickable accent-orange">
+    <div class="stat-icon block">⛔</div>
+    <div class="stat-body">
+      <span class="stat-label">Pathway Blocks</span>
+      <strong class="stat-value">{{ stats.by_violation.get('pathway_block', 0) }}</strong>
+      <span class="stat-hint">Obstruction list →</span>
+    </div>
+  </a>
+  <a href="/violations/mobile_usage" class="stat-card clickable accent-purple">
+    <div class="stat-icon mobile">📱</div>
+    <div class="stat-body">
+      <span class="stat-label">Mobile Usage</span>
+      <strong class="stat-value">{{ stats.by_violation.get('mobile_usage', 0) }}</strong>
+      <span class="stat-hint">Phone violations →</span>
+    </div>
+  </a>
+  <a href="/violations/ppe_violation" class="stat-card clickable accent-ppe">
+    <div class="stat-icon ppe">⛑</div>
+    <div class="stat-body">
+      <span class="stat-label">PPE Violations</span>
+      <strong class="stat-value">{{ stats.by_violation.get('ppe_violation', 0) }}</strong>
+      <span class="stat-hint">Missing equipment →</span>
+    </div>
+  </a>
+  <a href="/violations/fire_detection" class="stat-card clickable accent-fire">
+    <div class="stat-icon fire">🔥</div>
+    <div class="stat-body">
+      <span class="stat-label">Fire Detection</span>
+      <strong class="stat-value">{{ stats.by_violation.get('fire_detection', 0) }}</strong>
+      <span class="stat-hint">Fire alerts →</span>
+    </div>
+  </a>
+  <a href="/violations/smoke_detection" class="stat-card clickable accent-smoke">
+    <div class="stat-icon smoke">💨</div>
+    <div class="stat-body">
+      <span class="stat-label">Smoke Detection</span>
+      <strong class="stat-value">{{ stats.by_violation.get('smoke_detection', 0) }}</strong>
+      <span class="stat-hint">Smoke alerts →</span>
+    </div>
+  </a>
+  <a href="/violations/object_fall" class="stat-card clickable accent-fall">
+    <div class="stat-icon fall">⬇</div>
+    <div class="stat-body">
+      <span class="stat-label">Object Fall</span>
+      <strong class="stat-value">{{ stats.by_violation.get('object_fall', 0) }}</strong>
+      <span class="stat-hint">Fall events →</span>
+    </div>
+  </a>
+  <a href="/violations/near_miss" class="stat-card clickable accent-nearmiss">
+    <div class="stat-icon nearmiss">⚠</div>
+    <div class="stat-body">
+      <span class="stat-label">Near Miss</span>
+      <strong class="stat-value">{{ stats.by_violation.get('near_miss', 0) }}</strong>
+      <span class="stat-hint">Proximity alerts →</span>
+    </div>
+  </a>
+  <a href="/violations/oil_spillage" class="stat-card clickable accent-oil">
+    <div class="stat-icon oil">🛢</div>
+    <div class="stat-body">
+      <span class="stat-label">Oil Spillage</span>
+      <strong class="stat-value">{{ stats.by_violation.get('oil_spillage', 0) }}</strong>
+      <span class="stat-hint">Spill alerts →</span>
+    </div>
+  </a>
+  <a href="/violations/wet_floor" class="stat-card clickable accent-wet">
+    <div class="stat-icon wet">💧</div>
+    <div class="stat-body">
+      <span class="stat-label">Wet Floor</span>
+      <strong class="stat-value">{{ stats.by_violation.get('wet_floor', 0) }}</strong>
+      <span class="stat-hint">Slip hazards →</span>
+    </div>
+  </a>
+  <a href="/violations/low_visibility" class="stat-card clickable accent-visibility">
+    <div class="stat-icon visibility">🌫</div>
+    <div class="stat-body">
+      <span class="stat-label">Low Visibility</span>
+      <strong class="stat-value">{{ stats.by_violation.get('low_visibility', 0) }}</strong>
+      <span class="stat-hint">Fog / haze alerts →</span>
+    </div>
+  </a>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Violation Drilldown</h2>
+    </div>
+    <div class="drilldown-cards">
+      <a href="/violations/pathway_block" class="drill-card">
+        <div class="drill-icon">⛔</div>
+        <div>
+          <strong>Pathway Block</strong>
+          <p>Static objects blocking walkway areas</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('pathway_block', 0) }}</span>
+      </a>
+      <a href="/violations/mobile_usage" class="drill-card">
+        <div class="drill-icon">📱</div>
+        <div>
+          <strong>Mobile Usage</strong>
+          <p>Phone use outside allowed mobile zones</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('mobile_usage', 0) }}</span>
+      </a>
+      <a href="/violations/ppe_violation" class="drill-card">
+        <div class="drill-icon">⛑</div>
+        <div>
+          <strong>PPE Violation</strong>
+          <p>Persons without required safety equipment</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('ppe_violation', 0) }}</span>
+      </a>
+      <a href="/violations/fire_detection" class="drill-card">
+        <div class="drill-icon">🔥</div>
+        <div>
+          <strong>Fire Detection</strong>
+          <p>Fire, welding, and electrical spark events in camera view</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('fire_detection', 0) }}</span>
+      </a>
+      <a href="/violations/smoke_detection" class="drill-card">
+        <div class="drill-icon">💨</div>
+        <div>
+          <strong>Smoke Detection</strong>
+          <p>Smoke detected in camera view</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('smoke_detection', 0) }}</span>
+      </a>
+      <a href="/violations/object_fall" class="drill-card">
+        <div class="drill-icon">⬇</div>
+        <div>
+          <strong>Object Fall</strong>
+          <p>Falling objects or persons in walkway zones</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('object_fall', 0) }}</span>
+      </a>
+      <a href="/violations/near_miss" class="drill-card">
+        <div class="drill-icon">⚠</div>
+        <div>
+          <strong>Near Miss</strong>
+          <p>Person and hazard in close proximity</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('near_miss', 0) }}</span>
+      </a>
+      <a href="/violations/oil_spillage" class="drill-card">
+        <div class="drill-icon">🛢</div>
+        <div>
+          <strong>Oil Spillage</strong>
+          <p>Oil spills and leaks in camera view</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('oil_spillage', 0) }}</span>
+      </a>
+      <a href="/violations/wet_floor" class="drill-card">
+        <div class="drill-icon">💧</div>
+        <div>
+          <strong>Wet Floor</strong>
+          <p>Wet floors, puddles, and slip hazards</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('wet_floor', 0) }}</span>
+      </a>
+      <a href="/violations/low_visibility" class="drill-card">
+        <div class="drill-icon">🌫</div>
+        <div>
+          <strong>Low Visibility</strong>
+          <p>Fog, haze, glare, and poor scene clarity</p>
+        </div>
+        <span class="badge">{{ stats.by_violation.get('low_visibility', 0) }}</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Severity Drilldown</h2>
+    </div>
+    <div class="severity-list">
+      <a href="/observations?severity=low" class="severity-row clickable">
+        <span class="pill low">Low</span>
+        <div class="severity-meta">
+          <strong>{{ stats.by_severity.get('low', 0) }}</strong>
+          <span>View details →</span>
+        </div>
+      </a>
+      <a href="/observations?severity=medium" class="severity-row clickable">
+        <span class="pill medium">Medium</span>
+        <div class="severity-meta">
+          <strong>{{ stats.by_severity.get('medium', 0) }}</strong>
+          <span>View details →</span>
+        </div>
+      </a>
+      <a href="/observations?severity=high" class="severity-row clickable">
+        <span class="pill high">High</span>
+        <div class="severity-meta">
+          <strong>{{ stats.by_severity.get('high', 0) }}</strong>
+          <span>View details →</span>
+        </div>
+      </a>
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Recent Observations</h2>
+    <a href="/observations" class="link">View all →</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Type</th>
+          <th>Object</th>
+          <th>Zone</th>
+          <th>Duration</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Last Seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for obs in recent %}
+        <tr class="clickable" onclick="window.location='/observations/{{ obs.observation_id }}'">
+          <td><code>{{ obs.observation_id[:8] }}…</code></td>
+          <td>{{ violation_labels.get(obs.violation_type, obs.violation_type) }}</td>
+          <td>{{ obs.object_class|object_class }}</td>
+          <td>{{ obs.zone_name }}</td>
+          <td>{{ obs.duration_seconds|duration }}</td>
+          <td><span class="pill {{ obs.severity }}">{{ obs.severity }}</span></td>
+          <td><span class="pill status-{{ obs.status }}">{{ obs.status }}</span></td>
+          <td>{{ obs.last_seen[:19].replace('T', ' ') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="empty">No observations yet. Start the CCTV monitor pipeline.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if live_preview_enabled %}
+<script>
+(function () {
+  const select = document.getElementById("camera-select");
+  const stream = document.getElementById("live-preview-stream");
+  if (!select || !stream) return;
+
+  select.addEventListener("change", function () {
+    const cameraId = encodeURIComponent(select.value);
+    stream.src = "/api/live/stream?camera_id=" + cameraId + "&t=" + Date.now();
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}
