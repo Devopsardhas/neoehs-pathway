@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% block title %}Camera Zone Demo | NeoEHS AI Vision{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Camera Zone Demo — Video Pathway Setup</h1>
+    <p>Upload a camera video, draw pathway and mobile-free zones on a native video frame, then run full violation detection. Drawing on the video itself keeps zone coordinates aligned with detection.</p>
+  </div>
+  <div class="page-actions">
+    <a href="/dashboard" class="btn secondary">Dashboard</a>
+    <a href="/observations" class="btn secondary">All Observations</a>
+  </div>
+</div>
+
+{% if request.query_params.get('uploaded') %}
+<div class="alert success">Upload saved successfully.</div>
+{% endif %}
+{% if request.query_params.get('frame_from_video') %}
+<div class="alert success">Drawing frame captured from the uploaded video at native resolution.</div>
+{% endif %}
+{% if request.query_params.get('zones_cleared') %}
+<div class="alert error">Existing zones were cleared because the new video/frame resolution is different. Please redraw the pathway.</div>
+{% endif %}
+{% if request.query_params.get('started') %}
+<div class="alert success">Detection started. Results will appear below when processing finishes.</div>
+{% endif %}
+{% if request.query_params.get('cleared') %}
+<div class="alert success">Camera demo data cleared.</div>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>How it works</h2>
+  </div>
+  <ol class="demo-help">
+    <li>Upload a sample video for the camera.</li>
+    <li>A drawing frame is taken from the video at the same resolution used for detection. Optionally pick a later timestamp if the first frame is unclear.</li>
+    <li>Open the zone drawer and draw the main pathway (yellow) and mobile-free zones (magenta) on that video frame.</li>
+    <li>Run detection and watch the live review: pathway mapping and detection boxes play on the uploaded video so you can confirm whether alerts are right or wrong.</li>
+  </ol>
+</section>
+
+<div class="camera-demo-grid">
+  {% for camera in demo_status.cameras %}
+  <section class="panel camera-demo-card">
+    <div class="panel-header">
+      <h2>{{ camera.name }}</h2>
+      <span class="badge">{{ camera.camera_id }}</span>
+    </div>
+
+    <div class="camera-demo-meta">
+      <p>
+        Demo video:
+        {% if camera.has_video %}
+        <code>{{ camera.video_name }}</code>
+        {% if camera.video_width and camera.video_height %}
+        <span class="muted">({{ camera.video_width }}×{{ camera.video_height }})</span>
+        {% endif %}
+        {% else %}
+        <span class="muted">Not uploaded</span>
+        {% endif %}
+      </p>
+      <p>
+        Drawing frame:
+        {% if camera.has_frame %}
+        {% if camera.frame_source == 'video' %}
+        from video{% if camera.frame_time_sec %} at {{ camera.frame_time_sec }}s{% endif %}
+        {% else %}
+        uploaded still
+        {% endif %}
+        {% if camera.frame_width and camera.frame_height %}
+        <span class="muted">({{ camera.frame_width }}×{{ camera.frame_height }})</span>
+        {% endif %}
+        {% else %}
+        <span class="muted">Not captured</span>
+        {% endif %}
+      </p>
+      <p>
+        Zones:
+        {% if camera.zone_count %}
+        {{ camera.pathway_zones }} pathway, {{ camera.mobile_zones }} mobile-free
+        {% else %}
+        <span class="muted">None defined</span>
+        {% endif %}
+      </p>
+      {% if camera.has_video and camera.has_frame and not camera.frame_matches_video %}
+      <p class="alert error">
+        Drawing frame is {{ camera.frame_width }}×{{ camera.frame_height }} but the video is
+        {{ camera.video_width }}×{{ camera.video_height }}. Capture a frame from the video before drawing zones.
+      </p>
+      {% endif %}
+    </div>
+
+    <form method="post" action="/camera-demo/{{ camera.camera_id }}/video" enctype="multipart/form-data" class="demo-upload-form">
+      <label class="demo-upload-label">
+        <strong>1. Sample video</strong>
+        <span>Zones are drawn on a native frame from this file</span>
+      </label>
+      <input type="file" name="demo_video" accept="video/mp4,video/avi,video/quicktime,video/webm,video/x-matroska,.mp4,.avi,.mov,.mkv,.webm" required>
+      <div class="actions-bar">
+        <button type="submit" class="btn secondary">Upload Video</button>
+      </div>
+    </form>
+
+    <form method="post" action="/camera-demo/{{ camera.camera_id }}/video-frame" class="demo-upload-form">
+      <label class="demo-upload-label">
+        <strong>2. Capture drawing frame from video</strong>
+        <span>Uses the video resolution so detection lines up with the pathway you draw</span>
+      </label>
+      <div class="camera-demo-frame-capture">
+        <label>
+          Time (seconds)
+          <input type="number" name="time_sec" min="0" step="0.5" value="0" {% if not camera.has_video %}disabled{% endif %}>
+        </label>
+        <button type="submit" class="btn secondary" {% if not camera.has_video %}disabled{% endif %}>Capture Frame</button>
+      </div>
+    </form>
+
+    <div class="camera-demo-zone-links">
+      <a
+        class="btn secondary {% if not camera.has_frame %}disabled{% endif %}"
+        href="/camera-demo/drawer/{{ camera.camera_id }}?type=pathway"
+        target="_blank"
+        rel="noopener"
+      >Draw Pathway Zone</a>
+      <a
+        class="btn secondary {% if not camera.has_frame %}disabled{% endif %}"
+        href="/camera-demo/drawer/{{ camera.camera_id }}?type=mobile_usage"
+        target="_blank"
+        rel="noopener"
+      >Draw Mobile-Free Zone</a>
+    </div>
+
+    <form method="post" action="/camera-demo/{{ camera.camera_id }}/frame" enctype="multipart/form-data" class="demo-upload-form">
+      <label class="demo-upload-label">
+        <strong>Optional: still image</strong>
+        <span>Only needed if you cannot capture a frame from the video</span>
+      </label>
+      <input type="file" name="frame_image" accept="image/jpeg,image/png,image/webp,image/bmp,.jpg,.jpeg,.png,.webp,.bmp" required>
+      <div class="actions-bar">
+        <button type="submit" class="btn secondary">Upload Image</button>
+      </div>
+    </form>
+
+    <form method="post" action="/camera-demo/{{ camera.camera_id }}/clear" class="camera-demo-clear">
+      <button type="submit" class="btn danger" onclick="return confirm('Clear image, zones, and video for {{ camera.name }}?')">Clear Camera Data</button>
+    </form>
+  </section>
+  {% endfor %}
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Run Full Detection</h2>
+  </div>
+  <p class="demo-help">
+    Runs pathway block, mobile usage, PPE, fire, smoke, object fall, near miss, oil spillage, wet floor, and low visibility checks
+    for every camera that has an uploaded video, a drawing frame, and defined zones.
+    The review player below shows the pathway map and detection boxes while the video is processed.
+  </p>
+  <div class="actions-bar">
+    <form method="post" action="/camera-demo/run">
+      <button type="submit" class="btn primary">Run Camera Demo Detection</button>
+    </form>
+    <form method="post" action="/camera-demo/stop">
+      <button type="submit" class="btn secondary">Stop</button>
+    </form>
+  </div>
+</section>
+
+<section class="panel live-preview-panel" id="camera-demo-review-panel">
+  <div class="panel-header live-preview-header">
+    <div>
+      <h2>Detection Review</h2>
+      <p class="live-preview-subtitle">
+        Watch the uploaded video with the drawn pathway overlaid and live detection boxes.
+        Use this to confirm whether each alert sits on the pathway correctly.
+      </p>
+    </div>
+    <span class="badge" id="review-camera">
+      {% if demo_status.current_camera_name %}{{ demo_status.current_camera_name }}{% else %}Waiting{% endif %}
+    </span>
+  </div>
+  <div class="live-preview-viewport">
+    <img
+      id="camera-demo-review-stream"
+      class="live-preview-stream"
+      src="/camera-demo/review/stream"
+      alt="Uploaded video review with pathway mapping and detections"
+    >
+  </div>
+</section>
+
+<section class="panel" id="camera-demo-status-panel">
+  <div class="panel-header">
+    <h2>Processing Status</h2>
+  </div>
+  <div id="camera-demo-status">
+    <p><strong>State:</strong> <span id="status-state">{{ demo_status.state }}</span></p>
+    <p><strong>Message:</strong> <span id="status-message">{{ demo_status.message }}</span></p>
+    <p><strong>Progress:</strong> <span id="status-progress">{{ '%.0f'|format(demo_status.progress_pct) }}%</span></p>
+    <p><strong>Events detected:</strong> <span id="status-events">{{ demo_status.events_detected }}</span></p>
+    {% if demo_status.error %}
+    <p class="alert error" id="status-error"><strong>Error:</strong> {{ demo_status.error }}</p>
+    {% else %}
+    <p class="alert error" id="status-error" hidden></p>
+    {% endif %}
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Camera</th>
+          <th>Violation</th>
+          <th>Summary</th>
+          <th>Observation</th>
+        </tr>
+      </thead>
+      <tbody id="status-results">
+        {% for result in demo_status.results %}
+        <tr>
+          <td>{{ result.camera_name or result.camera_id }}</td>
+          <td>{{ violation_labels.get(result.violation_type, result.violation_type) }}</td>
+          <td>{{ result.summary }}</td>
+          <td>
+            {% if result.observation_id %}
+            <a href="/observations/{{ result.observation_id }}">View</a>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr id="status-results-empty"><td colspan="4" class="empty">No detections yet. Alerts appear here while the review plays.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const violationLabels = {{ violation_labels | tojson }};
+
+  function renderResults(results) {
+    const body = document.getElementById("status-results");
+    if (!body) return;
+    if (!results || results.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" class="empty">No detections yet. Alerts appear here while the review plays.</td></tr>';
+      return;
+    }
+    body.innerHTML = results.map((result) => {
+      const label = violationLabels[result.violation_type] || result.violation_type;
+      const link = result.observation_id
+        ? `<a href="/observations/${result.observation_id}">View</a>`
+        : "—";
+      return `<tr>
+        <td>${result.camera_name || result.camera_id || ""}</td>
+        <td>${label}</td>
+        <td>${result.summary || ""}</td>
+        <td>${link}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  function connectReviewStream() {
+    const stream = document.getElementById("camera-demo-review-stream");
+    if (!stream) return;
+    stream.src = `/camera-demo/review/stream?t=${Date.now()}`;
+  }
+
+  async function refreshCameraDemoStatus() {
+    try {
+      const response = await fetch("/api/camera-demo/status");
+      if (!response.ok) return;
+      const data = await response.json();
+      document.getElementById("status-state").textContent = data.state || "idle";
+      document.getElementById("status-message").textContent = data.message || "";
+      document.getElementById("status-progress").textContent = `${Math.round(data.progress_pct || 0)}%`;
+      document.getElementById("status-events").textContent = String(data.events_detected || 0);
+      const cameraLabel = data.current_camera_name || (data.state === "running" ? "Starting…" : "Waiting");
+      document.getElementById("review-camera").textContent = cameraLabel;
+      const errorEl = document.getElementById("status-error");
+      if (errorEl) {
+        if (data.error) {
+          errorEl.hidden = false;
+          errorEl.innerHTML = `<strong>Error:</strong> ${data.error}`;
+        } else {
+          errorEl.hidden = true;
+          errorEl.textContent = "";
+        }
+      }
+      renderResults(data.results || []);
+      if (data.state === "running") {
+        setTimeout(refreshCameraDemoStatus, 1500);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  connectReviewStream();
+  if ("{{ demo_status.state }}" === "running" || "{{ request.query_params.get('started') }}" === "1") {
+    refreshCameraDemoStatus();
+  }
+</script>
+<style>
+  .camera-demo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .camera-demo-card .badge {
+    font-size: 12px;
+    color: #64748b;
+  }
+  .camera-demo-meta p {
+    margin: 6px 0;
+    font-size: 14px;
+  }
+  .camera-demo-zone-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .camera-demo-zone-links .disabled {
+    pointer-events: none;
+    opacity: 0.45;
+  }
+  .camera-demo-clear {
+    margin-top: 8px;
+  }
+  .camera-demo-frame-capture {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: end;
+  }
+  .camera-demo-frame-capture label {
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+  }
+  .camera-demo-frame-capture input {
+    width: 120px;
+    padding: 8px 10px;
+  }
+  .camera-demo-card .alert {
+    margin: 8px 0 0;
+    font-size: 13px;
+  }
+</style>
+{% endblock %}

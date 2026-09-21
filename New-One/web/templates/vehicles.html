@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Vehicle Management | NeoEHS AI Vision{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Vehicle Management</h1>
+    <p>Front and back gate ANPR · vehicles inside campus · in/out history</p>
+  </div>
+  <div class="page-actions">
+    <a href="/vehicles/demo" class="btn secondary">Gate Demo Videos</a>
+    <a href="/vehicles/history" class="btn secondary">Full History</a>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card accent-green">
+    <div class="stat-icon active">🚗</div>
+    <div class="stat-body">
+      <span class="stat-label">Vehicles Inside</span>
+      <strong class="stat-value">{{ stats.inside_count }}</strong>
+      <span class="stat-hint">Currently on campus</span>
+    </div>
+  </div>
+  <div class="stat-card accent-blue">
+    <div class="stat-icon total">→</div>
+    <div class="stat-body">
+      <span class="stat-label">Entries Today</span>
+      <strong class="stat-value">{{ stats.entries_today }}</strong>
+      <span class="stat-hint">Front gate IN detections</span>
+    </div>
+  </div>
+  <div class="stat-card accent-orange">
+    <div class="stat-icon block">←</div>
+    <div class="stat-body">
+      <span class="stat-label">Exits Today</span>
+      <strong class="stat-value">{{ stats.exits_today }}</strong>
+      <span class="stat-hint">Back gate OUT detections</span>
+    </div>
+  </div>
+  <div class="stat-card accent-muted">
+    <div class="stat-icon resolved">⏱</div>
+    <div class="stat-body">
+      <span class="stat-label">Avg Visit Duration</span>
+      <strong class="stat-value">{{ stats.avg_visit_duration_sec|duration }}</strong>
+      <span class="stat-hint">Completed visits today</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Vehicles Currently Inside</h2>
+      <span class="badge">{{ inside_vehicles|length }}</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Plate</th>
+            <th>Type</th>
+            <th>Brand</th>
+            <th>Entry Gate</th>
+            <th>Entry Time</th>
+            <th>Duration Inside</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vehicle in inside_vehicles %}
+          <tr class="clickable" onclick="window.location='/vehicles/{{ vehicle.plate_number }}'">
+            <td><code>{{ vehicle.plate_number }}</code></td>
+            <td>{{ vehicle.vehicle_type }}</td>
+            <td>{{ vehicle.vehicle_brand }}</td>
+            <td>{{ vehicle.entry_gate_name }}</td>
+            <td>{{ vehicle.entry_time[:19].replace('T', ' ') }}</td>
+            <td>{{ vehicle.duration_seconds|duration }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="empty">No vehicles currently inside the campus.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Gate Cameras</h2>
+    </div>
+    <div class="drilldown-cards">
+      {% for camera in gate_cameras %}
+      <div class="drill-card static-card">
+        <div class="drill-icon">{% if camera.role == 'gate_in' %}→{% else %}←{% endif %}</div>
+        <div>
+          <strong>{{ camera.name }}</strong>
+          <p>{{ camera.gate_name }} · {{ 'Entry' if camera.role == 'gate_in' else 'Exit' }}</p>
+        </div>
+        <span class="pill {% if camera.role == 'gate_in' %}low{% else %}medium{% endif %}">
+          {{ camera.role.replace('_', ' ')|title }}
+        </span>
+      </div>
+      {% else %}
+      <p class="empty">Configure gate cameras with role gate_in / gate_out in config.yaml.</p>
+      {% endfor %}
+    </div>
+    <div class="settings-notes">
+      <p>Run gate detection with: <code>python gate_monitor.py</code></p>
+      <p>For OCR accuracy install: <code>pip install easyocr</code></p>
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>In / Out Event Log</h2>
+    <a href="/vehicles/history" class="link">Full history →</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Plate</th>
+          <th>Direction</th>
+          <th>Type</th>
+          <th>Brand</th>
+          <th>Gate</th>
+          <th>Camera</th>
+          <th>Duration</th>
+          <th>Confidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in recent_events %}
+        <tr class="clickable" onclick="window.location='/vehicles/{{ event.plate_number }}'">
+          <td>{{ event.event_time[:19].replace('T', ' ') }}</td>
+          <td><code>{{ event.plate_number }}</code></td>
+          <td><span class="pill {% if event.direction == 'in' %}low{% else %}medium{% endif %}">{{ event.direction|upper }}</span></td>
+          <td>{{ event.vehicle_type }}</td>
+          <td>{{ event.vehicle_brand }}</td>
+          <td>{{ event.gate_name }}</td>
+          <td>{{ event.camera_name }}</td>
+          <td>{% if event.duration_seconds is not none %}{{ event.duration_seconds|duration }}{% else %}—{% endif %}</td>
+          <td>{{ '%.0f'|format(event.confidence * 100) }}%</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="empty">No gate events yet. Start gate_monitor.py with front/back gate cameras.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

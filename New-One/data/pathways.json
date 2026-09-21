@@ -1,0 +1,26 @@
+{
+  "pathways": [
+    {
+      "id": "main_pathway",
+      "name": "Main_pathway",
+      "type": "pathway",
+      "points": [
+        [100, 200],
+        [500, 200],
+        [500, 400],
+        [100, 400]
+      ]
+    },
+    {
+      "id": "mobile_zone_1",
+      "name": "Mobile allowed area",
+      "type": "mobile_usage",
+      "points": [
+        [150, 250],
+        [350, 250],
+        [350, 350],
+        [150, 350]
+      ]
+    }
+  ]
+}

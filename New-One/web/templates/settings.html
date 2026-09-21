@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Detection Settings | NeoEHS AI Vision{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Detection Settings</h1>
+    <p>Enable or disable each violation type. Changes apply to the running monitor within a few seconds.</p>
+  </div>
+</div>
+
+{% if saved %}
+<div class="alert success">Settings saved successfully.</div>
+{% endif %}
+{% if cleared %}
+<div class="alert success">Data cleared successfully.{% if clear_message %} {{ clear_message }}{% endif %}</div>
+{% endif %}
+
+<form method="post" action="/settings" class="settings-form">
+  <section class="panel settings-panel">
+    <div class="panel-header">
+      <h2>Violation Detection</h2>
+    </div>
+    {% for key, label in setting_labels.items() %}
+    <label class="toggle-row">
+      <div class="toggle-copy">
+        <strong>{{ label }}</strong>
+        <span>{{ setting_descriptions.get(key, '') }}</span>
+      </div>
+      <span class="toggle-switch">
+        <input type="checkbox" name="{{ key }}" value="true" {% if settings[key] %}checked{% endif %}>
+        <span class="toggle-slider"></span>
+      </span>
+    </label>
+    {% endfor %}
+  </section>
+
+  <section class="panel settings-panel">
+    <div class="panel-header">
+      <h2>PPE Requirements</h2>
+    </div>
+    {% for key, label in ppe_item_labels.items() %}
+    <label class="toggle-row">
+      <div class="toggle-copy">
+        <strong>{{ label }}</strong>
+        <span>{{ ppe_item_descriptions.get(key, '') }}</span>
+      </div>
+      <span class="toggle-switch">
+        <input type="checkbox" name="{{ key }}" value="true" {% if ppe_item_settings[key] %}checked{% endif %}>
+        <span class="toggle-slider"></span>
+      </span>
+    </label>
+    {% endfor %}
+  </section>
+
+  <div class="actions-bar">
+    <button type="submit" class="btn primary">Save Settings</button>
+    <a href="/dashboard" class="btn secondary">Cancel</a>
+  </div>
+</form>
+
+<section class="panel settings-danger-panel">
+  <div class="panel-header">
+    <h2>Clear Test Data</h2>
+  </div>
+  <div class="settings-notes">
+    <p>Remove all observations, capture images, vehicle records, and uploaded demo videos so you can run a fresh test.</p>
+    <p>Detection settings and pathway zone definitions are kept by default.</p>
+  </div>
+  <form method="post" action="/settings/clear-data" class="settings-clear-form" onsubmit="return confirm('Clear all observations, captures, and demo videos? This cannot be undone.');">
+    <label class="toggle-row">
+      <div class="toggle-copy">
+        <strong>Keep camera zone definitions</strong>
+        <span>When checked, reference images and drawn pathway/mobile zones are kept. Uncheck to remove them too.</span>
+      </div>
+      <span class="toggle-switch">
+        <input type="checkbox" name="keep_zones" value="true" checked>
+        <span class="toggle-slider"></span>
+      </span>
+    </label>
+    <input type="hidden" name="confirm" value="true">
+    <div class="actions-bar">
+      <button type="submit" class="btn danger">Clear All Data</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>How it works</h2>
+  </div>
+  <div class="settings-notes">
+    <p>Settings are stored in <code>data/detection_settings.json</code> and picked up automatically by the CCTV monitor pipeline.</p>
+    <p>Disabling a detection type stops new observations for that violation. Existing active observations are resolved after their grace period.</p>
+    <p>PPE item toggles control which equipment types are required. One violation is created per person, listing all missing items together.</p>
+    <p>Default values come from <code>config.yaml</code> until you save changes here.</p>
+  </div>
+</section>
+{% endblock %}

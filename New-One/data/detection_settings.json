@@ -1,0 +1,16 @@
+{
+  "pathway_block": true,
+  "mobile_usage": false,
+  "ppe_violation": true,
+  "fire_detection": false,
+  "smoke_detection": false,
+  "object_fall": false,
+  "near_miss": false,
+  "oil_spillage": false,
+  "wet_floor": false,
+  "low_visibility": false,
+  "ppe_helmet": true,
+  "ppe_vest": false,
+  "ppe_gloves": false,
+  "ppe_boots": false
+}

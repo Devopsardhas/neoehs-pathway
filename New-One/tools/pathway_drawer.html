@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pathway Zone Drawer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    header {
+      padding: 14px 20px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    h1 { margin: 0; font-size: 18px; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+    button, input {
+      border: 1px solid #475569;
+      background: #334155;
+      color: #f8fafc;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.primary { background: #2563eb; border-color: #2563eb; }
+    button.danger { background: #b91c1c; border-color: #b91c1c; }
+    #status { font-size: 13px; color: #94a3b8; }
+    main { padding: 16px; }
+    .canvas-wrap {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+    }
+    canvas, img { display: block; max-width: 100%; height: auto; }
+    canvas {
+      position: absolute;
+      inset: 0;
+      cursor: crosshair;
+    }
+    .hint {
+      margin-top: 12px;
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    label { display: grid; gap: 4px; font-size: 13px; color: #cbd5e1; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Pathway Zone Drawer</h1>
+      <div id="status">Click on the image to add polygon points.</div>
+    </div>
+    <div class="toolbar">
+      <button type="button" id="undo">Undo</button>
+      <button type="button" id="reset" class="danger">Reset</button>
+      <button type="button" id="save" class="primary">Save Zone</button>
+    </div>
+  </header>
+  <main>
+    <div class="canvas-wrap">
+      <img id="frame" alt="Camera frame">
+      <canvas id="overlay"></canvas>
+    </div>
+    <div class="fields">
+      <label>Zone ID <input id="zone-id" type="text"></label>
+      <label>Zone name <input id="zone-name" type="text"></label>
+      <label>Zone type <input id="zone-type" type="text" readonly></label>
+    </div>
+    <p class="hint">
+      Click to place points (minimum 3). Use <strong>Undo</strong> or <strong>Reset</strong> to fix mistakes.
+      Press <strong>Save Zone</strong> when the polygon is complete.
+    </p>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const zoneType = params.get("type") || "pathway";
+    const frameUrl = params.get("frame") || "frame.jpg";
+    const saveUrl = params.get("saveUrl") || "/save";
+
+    const img = document.getElementById("frame");
+    const canvas = document.getElementById("overlay");
+    const ctx = canvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const zoneIdEl = document.getElementById("zone-id");
+    const zoneNameEl = document.getElementById("zone-name");
+    const zoneTypeEl = document.getElementById("zone-type");
+
+    zoneTypeEl.value = zoneType;
+    zoneIdEl.value = zoneType === "pathway" ? "main_pathway" : "mobile_zone_1";
+    zoneNameEl.value = zoneType === "pathway" ? "Main_pathway" : "Mobile allowed area";
+
+    const color = zoneType === "pathway" ? "#00ff00" : "#00c2ff";
+    let points = [];
+
+    function resizeCanvas() {
+      canvas.width = img.clientWidth;
+      canvas.height = img.clientHeight;
+      draw();
+    }
+
+    function toCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: Math.round((event.clientX - rect.left) * (img.naturalWidth / rect.width)),
+        y: Math.round((event.clientY - rect.top) * (img.naturalHeight / rect.height)),
+      };
+    }
+
+    function toDisplayPoint(point) {
+      return {
+        x: point.x * (canvas.width / img.naturalWidth),
+        y: point.y * (canvas.height / img.naturalHeight),
+      };
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (points.length === 0) return;
+
+      const display = points.map(toDisplayPoint);
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color + "40";
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      display.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      if (display.length >= 3) {
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.stroke();
+
+      display.forEach((p, i) => {
+        ctx.fillStyle = "#ff0000";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "12px sans-serif";
+        ctx.fillText(String(i + 1), p.x + 8, p.y - 8);
+      });
+
+      statusEl.textContent = `${points.length} point(s) placed. Need at least 3 to save.`;
+    }
+
+    canvas.addEventListener("click", (event) => {
+      points.push(toCanvasPoint(event));
+      draw();
+    });
+
+    document.getElementById("undo").addEventListener("click", () => {
+      points.pop();
+      draw();
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      points = [];
+      draw();
+      statusEl.textContent = "Points cleared.";
+    });
+
+    document.getElementById("save").addEventListener("click", async () => {
+      if (points.length < 3) {
+        statusEl.textContent = "Add at least 3 points before saving.";
+        return;
+      }
+
+      const payload = {
+        id: zoneIdEl.value.trim(),
+        name: zoneNameEl.value.trim(),
+        type: zoneType,
+        points: points.map((p) => [p.x, p.y]),
+      };
+
+      try {
+        const response = await fetch(saveUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Save failed");
+        statusEl.textContent = `Saved zone '${data.name}' to ${data.output}`;
+      } catch (error) {
+        statusEl.textContent = error.message || String(error);
+      }
+    });
+
+    img.addEventListener("load", resizeCanvas);
+    window.addEventListener("resize", resizeCanvas);
+    img.src = frameUrl;
+  </script>
+</body>
+</html>

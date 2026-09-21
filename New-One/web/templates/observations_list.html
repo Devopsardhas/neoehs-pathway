@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} | NeoEHS AI Vision{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <nav class="breadcrumb">
+      <a href="/dashboard">Dashboard</a>
+      <span>/</span>
+      <span>{{ page_title }}</span>
+    </nav>
+    <h1>{{ page_title }}</h1>
+    <p>{{ total }} record(s) · Click a row for full observation detail</p>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <span>Filters:</span>
+  <a href="/observations" class="filter-btn {% if not status_filter and not severity_filter and not violation_type_filter %}active{% endif %}">All</a>
+  <a href="/observations?status=active" class="filter-btn {% if status_filter == 'active' %}active{% endif %}">Active</a>
+  <a href="/observations?status=resolved" class="filter-btn {% if status_filter == 'resolved' %}active{% endif %}">Resolved</a>
+  <a href="/observations?severity=low" class="filter-btn {% if severity_filter == 'low' %}active{% endif %}">Low</a>
+  <a href="/observations?severity=medium" class="filter-btn {% if severity_filter == 'medium' %}active{% endif %}">Medium</a>
+  <a href="/observations?severity=high" class="filter-btn {% if severity_filter == 'high' %}active{% endif %}">High</a>
+</div>
+
+<section class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Observation ID</th>
+          <th>Violation</th>
+          <th>Camera</th>
+          <th>Zone</th>
+          <th>Object</th>
+          <th>Duration</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Last Seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for obs in observations %}
+        <tr class="clickable" onclick="window.location='/observations/{{ obs.observation_id }}'">
+          <td><code>{{ obs.observation_id[:8] }}…</code></td>
+          <td>{{ violation_labels.get(obs.violation_type, obs.violation_type) }}</td>
+          <td>{{ obs.camera_id }}</td>
+          <td>{{ obs.zone_name }}</td>
+          <td>{{ obs.object_class|object_class }}</td>
+          <td>{{ obs.duration_seconds|duration }}</td>
+          <td><span class="pill {{ obs.severity }}">{{ obs.severity }}</span></td>
+          <td><span class="pill status-{{ obs.status }}">{{ obs.status }}</span></td>
+          <td>{{ obs.last_seen[:19].replace('T', ' ') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="empty">No observations match this filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

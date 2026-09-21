@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ violation_label }} | NeoEHS AI Vision{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <nav class="breadcrumb">
+      <a href="/dashboard">Dashboard</a>
+      <span>/</span>
+      <span>{{ violation_label }}</span>
+    </nav>
+    <h1>{{ violation_label }}</h1>
+    <p>{{ total }} record(s) · Click a row for full observation detail</p>
+  </div>
+</div>
+
+<div class="stats-grid compact">
+  <a href="/violations/{{ violation_type }}" class="stat-card clickable mini">
+    <span class="stat-label">Total</span>
+    <strong class="stat-value">{{ total }}</strong>
+  </a>
+  <a href="/violations/{{ violation_type }}?status=active" class="stat-card clickable mini accent-green">
+    <span class="stat-label">Active</span>
+    <strong class="stat-value">{{ active }}</strong>
+  </a>
+  <a href="/violations/{{ violation_type }}?status=resolved" class="stat-card clickable mini accent-muted">
+    <span class="stat-label">Resolved</span>
+    <strong class="stat-value">{{ resolved }}</strong>
+  </a>
+</div>
+
+<div class="filter-bar">
+  <span>Status:</span>
+  <a href="/violations/{{ violation_type }}" class="filter-btn {% if not status_filter %}active{% endif %}">All</a>
+  <a href="/violations/{{ violation_type }}?status=active" class="filter-btn {% if status_filter == 'active' %}active{% endif %}">Active</a>
+  <a href="/violations/{{ violation_type }}?status=resolved" class="filter-btn {% if status_filter == 'resolved' %}active{% endif %}">Resolved</a>
+</div>
+
+<section class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Observation ID</th>
+          <th>Camera</th>
+          <th>Zone</th>
+          <th>Track</th>
+          <th>Object</th>
+          <th>Duration</th>
+          <th>Severity</th>
+          <th>Confidence</th>
+          <th>Status</th>
+          <th>Last Seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for obs in observations %}
+        <tr class="clickable" onclick="window.location='/observations/{{ obs.observation_id }}'">
+          <td><code>{{ obs.observation_id[:8] }}…</code></td>
+          <td>{{ obs.camera_id }}</td>
+          <td>{{ obs.zone_name }}</td>
+          <td>{% if obs.track_id is not none %}#{{ obs.track_id }}{% else %}—{% endif %}</td>
+          <td>{{ obs.object_class|object_class }}</td>
+          <td>{{ obs.duration_seconds|duration }}</td>
+          <td><span class="pill {{ obs.severity }}">{{ obs.severity }}</span></td>
+          <td>{{ '%.0f'|format(obs.confidence_score * 100) }}%</td>
+          <td><span class="pill status-{{ obs.status }}">{{ obs.status }}</span></td>
+          <td>{{ obs.last_seen[:19].replace('T', ' ') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="empty">No observations for this violation type.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
